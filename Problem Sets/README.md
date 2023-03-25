@@ -1,6 +1,6 @@
 # Problem Set Scores
 
-The following table houses my project scores through M146. Each problem set was worth 12.5%, for a total of 50% of my final grade
+The following table houses my problem set scores through CS M146. Each problem set was worth 12.5%, for a total of 50% of my final grade
 
 | **#** | **Score** |
 |:-----:|:---------:|
