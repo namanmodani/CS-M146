@@ -1,0 +1,153 @@
+\documentclass[11pt]{article}
+
+\newcommand{\edit}[1]{{\bf{\color{red}{{#1}}}}}
+\newcommand{\sol}[1]{{\bf{\color{magenta}{{Solution:}}}}}
+
+\usepackage{course}
+\begin{document}
+
+\ctitle{1}{Decision trees, Nearest neighbors}{Feb 3, 2023 at 11:59 pm PST}
+\author{}
+\date{}
+\vspace{-1in}
+\maketitle
+\vspace{-0.75in}
+
+\blfootnote{Parts of this assignment are adapted from course material by Andrea Danyluk (Williams), Tom Mitchell and Maria-Florina Balcan (CMU), Stuart Russell (UC Berkeley) and Jessica Wu (Harvey Mudd).}
+
+\ifsoln
+\else
+\section*{Submission instructions}
+\begin{itemize}
+\item 
+Submit your solutions electronically on the course Gradescope. Please upload as either a PDF document or Images (.jpeg, .png).
+\item If you plan to typeset your solutions, please use the LaTeX solution template. If you must submit scanned handwritten solutions, please use a black pen on blank white paper and a high-quality scanner app.
+\item On Gradescope, please carefully mark each page as the corresponding problem or it will not be scored. Responses which are blurry, cut off, or unreadable will also not be scored.
+\item Submitting code is not required. Please submit only the results and responses related to the coding portion.
+\end{itemize}
+\fi
+
+
+\ifnotsolution{\newpage}
+\section{Splitting Heuristic for Decision Trees \problemworth{20}}
+Recall that the ID3 algorithm iteratively grows a decision tree from the root downwards. On each iteration, the algorithm replaces one leaf node with an internal node that splits the data based on one decision attribute (or feature). In particular, the ID3 algorithm chooses the split that reduces the entropy the most, but there are other choices. For example, since our goal in the end is to have the lowest error, why not instead choose the split that reduces error the most? In this problem, we will explore one reason why reducing entropy is a better criterion.
+
+Consider the following simple setting. Let us suppose each example is described by $n$ boolean features: $X = \langle X_1, \ldots, X_n \rangle$, where $X_i \in \{0, 1\}$, and where $n \geq 4$. Furthermore, the target function to be learned is $f : X \rightarrow Y$, where $Y = X_1 \vee X_2 \vee X_3$. That is, $Y = 1$ if $X_1 = 1$ or $X_2 = 1$ or $X_3 = 1$, and $Y = 0$ otherwise ($X_i$ for $i\geq 4$ is not considered). Suppose that your training data contains all of the $2^n$ possible examples, each labeled by $f$. For example, when $n = 4$, the data set would be
+\begin{table}[H]
+\centering
+\begin{tabular}{cccc|c}
+$X_1$ & $X_2$ & $X_3$ & $X_4$ & $Y$\\ \hline
+0 & 0 & 0 & 0 & 0\\
+1 & 0 & 0 & 0 & 1\\
+0 & 1 & 0 & 0 & 1\\
+1 & 1 & 0 & 0 & 1\\
+0 & 0 & 1 & 0 & 1\\
+1 & 0 & 1 & 0 & 1\\
+0 & 1 & 1 & 0 & 1\\
+1 & 1 & 1 & 0 & 1\\
+\end{tabular}
+\quad \quad \quad \quad
+\begin{tabular}{cccc|c}
+$X_1$ & $X_2$ & $X_3$ & $X_4$ & $Y$\\ \hline
+0 & 0 & 0 & 1 & 0\\
+1 & 0 & 0 & 1 & 1\\
+0 & 1 & 0 & 1 & 1\\
+1 & 1 & 0 & 1 & 1\\
+0 & 0 & 1 & 1 & 1\\
+1 & 0 & 1 & 1 & 1\\
+0 & 1 & 1 & 1 & 1\\
+1 & 1 & 1 & 1 & 1\\
+\end{tabular}
+\end{table}
+
+\begin{enumerate}
+\item \itemworth{5} How many mistakes does the best $1$-leaf decision tree make over the $2^n$ training examples? (The $1$-leaf decision tree does not split the data even once. Justify and answer for the general case when $n \geq 4$ for full credit.)
+
+\sol  x A sample $X$ is considered as 0 iff all its features $X_1$, $X_2$, and $X_3$ are equal to $0$. The number of such binary vectors can be calculated as $2^{n-3}$ because there are two possibilities for each of the remaining $n-3$ features. Since $2^n$ is much larger than $2^{n-3}$, the (best) 1-leaf decision tree that predicts 1 for every input will result in $2^{n-3}$ mistakes, which means it will make an error $2^{n-3}/2^n = 1/8^{th}$ of the time.
+
+\item \itemworth{5} Is there a split that reduces the number of mistakes by at least one? (That is, is there a decision tree with $1$ internal node with fewer mistakes than your answer to part (a)?)  Why or why not? (Note that, as in lecture, you should restrict your attention to splits that consider a single attribute.)
+
+\sol x No matter which root variable is chosen, the error rate will stay the same at $\frac{1}{8}$. 
+
+Case 1: If a split is made on a variable $X_i$ with $i \geq 4$, it will divide the data so that the ratio of ones in each leaf is $\frac{7}{8}$. Both leaves will be predicted as 1, resulting in the same number of errors as the single-leaf tree that always predicts 1. 
+
+Case 2: Now, if the split is made on $X_1$, $X_2$, or $X_3$, the data will be divided into two leaves with one containing only 1's and the other having a 1's ratio of $\frac{3}{4}$. In this instance, both leaves will be predicted as 1, leading to the same number of errors as the single-leaf tree that always predicts 1.
+
+\item \itemworth{5} What is the entropy of the label $Y$?
+
+\sol x $$H(X) = \frac{1}{8} \log(8) + \frac{7}{8} \log\left(\frac{8}{7}\right) = 0.543 \text{ bits}, \text{ since } Y \sim \text{Bernoulli}(\frac{7}{8})$$
+
+\item \itemworth{5} Is there a split that reduces the entropy of $Y$ by a non-zero amount? If so, what is it, and what is the resulting conditional entropy of $Y$ given this split? (Again, as in lecture, you should restrict your attention to splits that consider a single attribute. Please use logarithm in base 2 to report Entropy.)
+
+\sol x Yes, by splitting along any of $X_1$, $X_2$, or $X_3$. Using conditional entropy for $X_i$, $H(Y \mid X_i) = \frac{1}{2}[0] + \frac{1}{2}\left[\frac{1}{4} \log(4) + \frac{3}{4} \log\left(\frac{4}{3}\right)\right] = 0.406 \text{ bits}$.
+
+\end{enumerate}
+
+
+
+
+
+\section{Entropy and Information \problemworth{5}}
+The entropy of a Bernoulli (Boolean 0/1) random variable $X$ with $P(X = 1) = q$ is given by
+\begin{equation*}
+B(q) = - q \log q - (1 - q) \log(1 - q).
+\end{equation*}
+Suppose that a set $S$ of examples contains $p$ positive examples and $n$ negative examples. The entropy of $S$ is defined as $H(S) = B\left(\frac{p}{p+n}\right)$. In this problem, you should assume that the base of all logarithms is 2. That is, $\log(z) := \log_2(z)$ in this problem (as in the lectures concerning entropy).
+\begin{enumerate}
+\item \itemworth{3} Show that $0 \le H(S)\le 1$ and that $H(S) = 1$  when $p = n$.
+
+\sol x Let $\frac{p}{p + n} = q$. We take the first derivative of B with respect to q (use chain rule) and apply the first derivative test:
+
+$\frac{dB}{dq} = -\log q - q \left(\frac{q}{\ln 2}\right) - \left(-\log\left(1-q\right) + \left(1-q\right)\left(\frac{1}{(1-q)(\ln 2)(-1)}\right) = -\log q + \log\left(1-q\right) = 0$
+
+This gives us $q = 1-q$, providing $q = 0.5$ as a critical point. Now, $B'(0.3) > 0$ and $B'(0.7) < 0$, so $g=0.5$ is a maximum. The value is $B(0.5) = 1$. We then check the endpoints: the variable q is restricted to the range $[0,1]$, and we have $B(0) = 0$, and $B(1) = 0$. The only critical point in the interval $[0, 1]$ is $0.5$, and it is a maximum, so thus, $0 \le B(q) \le 1$, which gives $0 \le H(S) \le 1$, as desired.
+
+Then, when $p = n$, $\frac{p}{p + n} = \frac{p}{2p} = 0.5$, and according to the above, $H(S = 0.5) = 1$, as desired.
+
+\item \itemworth{2} Based on an attribute, we split our examples into $k$ disjoint subsets $S_k$, with $p_k$ positive and $n_k$ negative examples in each. If the ratio $\tfrac{p_k}{p_k + n_k}$ is the same for all $k$, show that the information gain of this attribute is 0.
+
+\sol x Gain is defined as $H[S]$ - $H[S | split]$. Taking advantage of this since $p = \sum_{k} p_k$ and $n = \sum_{k} n_k$, if $p_k/(p_k + n_k)$ is the same for all $k$, it must be that $p_k/(p_k + n_k) = p/(p + n) = q$ for all $k$. Then the entropy of $S$ is $B(p/(p + n))$ and the weighted average entropy of its children $S_k$ is: $\sum_{k} \frac{p_k + n_k}{p + n} B(p_k/(p_k + n_k)) = \frac{p + n}{p + n} B(p/(p + n)) = B(p/(p + n))$.
+
+Substituting this expression and the expression for $H[S]$ into the gain equation gives:
+
+$Gain = B(p/(p + n)) - B(p/(p + n)) = 0$.
+
+Thus, we have shown that this particular split results in no information gain.
+
+\end{enumerate}
+
+
+
+
+
+\ifsolution{\newpage}
+\section{k-Nearest Neighbor \problemworth{10}}
+One of the problems with $k$-nearest neighbor learning is selecting a value for $k$. Say you are given the following data set. This is a binary classification task in which the instances are described by two real-valued attributes. The labels or classes of each instance are denoted as either an asterisk or a circle.
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{knn.png}
+\end{figure}
+\begin{enumerate}
+\item \itemworth{3} What value of $k$ minimizes training set error for this data set, and what is the resulting training set error? Why is training set error not a reasonable estimate of test set error, especially given this value of $k$?
+
+\sol x The value $k = 1$ minimizes the training set error, and it results in an error of 0. This is because we are simply assigning a label based on the label that it has, as it is its own closest neighbor. 
+
+This is not a reasonable estimate of the test set error because we are overfitting the data and not taking any of the data's neighbors into account. When the model overfits the training data, it may increase training set accuracy while lowering test set accuracy. There is a chance that $k = 1$, despite fitting the given data, may not generalize well to new data.
+
+\item \itemworth{3} What value of $k$ minimizes the leave-one-out cross-validation error for this data set, and what is the resulting error? Why is cross-validation a better measure of test set performance?
+
+\sol x Using either $k = 5$ or $k = 7$ minimizes the LOOCV error; for both values of k, we get 4 misclassified points and 10 correctly classified points, resulting in an error of $\frac{4}{14} = 0.286$.
+
+Cross-validation is a better measure of test set performance because it measures performance on data other than the data used to train the model. Essentially, we are cycling through which data is used as test data (and the complement being used as training data), thereby removing any bias that could result from training or testing on a particular set of data.
+
+\item \itemworth{4} What are the LOOCV errors for the lowest and highest $k$ for this data set? Why might using too large or too small a value of $k$ be bad?
+
+\sol x If we use $k = 0$, the error is 0. If we use $k = 1$, we get an error of $\frac{10}{14} = 0.714$. If we use $k = 13$, we get an error of $\frac{14}{14} = 1$. Asserting values for $k$ that are too small or too large reduces test set accuracy because the former leads to overfitting and the latter to underfitting, or simply, the degeneration of the problem into a simple majority vote, potentially
+causing all points to be misclassified (as demonstrated in the example).
+
+\end{enumerate}
+
+\input{ps1_coding.2.tex}
+
+
+\end{document}
