@@ -7,4 +7,5 @@ The following table houses my problem set scores through CS M146. Each problem s
 | 1     | 80/80     |
 | 2     | 46/47     |
 | 3     | 71/72     |
-| 4     | Awaiting  |
+| 4 (M) | 18/18     |
+| 4 (C) | Awaiting  |
